@@ -1,122 +1,127 @@
-const express = require('express')
-const app = express()
-const port = 3000 
+// import express
+const express = require('express');
+// import JWT tokens
+const jwt = require('jsonwebtoken');
+// start listening on port 3000
+const app = express();
+const port = 4000;
 
 let dbUsers = [
     {
       username : "ain",
       password : "1234",
-      name : "ainsuhana",
+      name : "Ainsuhana",
       email : "ain@gmail.com"
     },
     {
       username : "han",
       password : "5678",
-      name : "hanjisung",
+      name : "hannie",
       email : "han@gmail.com"
     },
     {
       username : "hyunjin",
       password : "2468",
-      name : "hwanghyunjin",
-      email : "hyunjin@gmail.com"
+      name : "Hyunjinie",
+      email : "hyun@gmail.com"
     }
   ]
 
+  //enable json parsing
 app.use(express.json());
 
-app.post('/login', (req, res) => {
-  let data = req.body
-  res.send(
-    login(data.username, data.password)
-  )
-})
-
-app.post('/register', (req, res) => {
-  let data = req.body
-  res.send(
-    register(
-      data.username,
-      data.password,
-      data.name,
-      data.email
-    )
-  )
-})
-
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
-// get is one of the method to request to the server
-
-// app.post('/', (req, res) => {
-//   let data = req.body
-//   res.send('Post request' + data.name)
-// })
+app.get('/hello', verifytoken, (req, res) => {
+    console.log(req.user);
+    res.send('Hello World!');
+});
 
 app.post('/', (req, res) => {
-  let data = req.body
-  res.send( 'Post request' + JSON.stringify(data))
-})
+    res.send(req.body);
+});
 
-// create a POST route for user to login
-// app.post('/login'), (req, res) => {
-//   // get the username and password from the resquest body
-//   const {username, passwoord} = req.body;
-// FFFF
-//   //find the user in the database
-//   const user = dbUsers.find(user => user.username === username && user.password ===password);
+app.post('/login', (req, res) => {
+    let data = req.body
+    
+    const user=login(data.username, data.password);
+    /*res.send(
+        login(
+            data.username,
+            data.password
+        )
+    );*/
+    res.send(generatetoken(user))
+  });
 
-//   // if user is found, return the user object
-//   if (user) {
-//     res.send(user);
-//   } else {
-//     // if user is not found, return an error message
-//     res.send({ error: "user not found"});
-//   }
-// }
-
-app.post('/bye', (req, res) => {
-    res.send('Bye Bye World!')
-  })
-// post is one of the method to request to the server
+app.post('/register', (req, res) => {
+    let data = req.body
+    res.send(
+        register(
+            data.username,
+            data.password,
+            data.name,
+            data.email
+        )
+    );
+});
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+    console.log('example app listening on port ${port}')
+});
 
-//mornally in search bar use get method, inside the website like fill the form use post
-
-// login
-function login(username, password) {
-  console.log("someone try to login with", username, password)
-
-  let matched = dbUsers.find(element => element.username == username)
-
-  if (matched) {
-      if(matched.password == password) {
-          return matched
+function login(username, password){
+      console.log("Someone try to login with ", username, password) //apa yg user akan masukkan
+      let matched = dbUsers.find(element => 
+          element.username == username  
+      )// find element
+      if(matched) {
+          if (matched.password == password){
+              return matched
+          } else {
+              return "Password not matched"
+          }
       } else {
-          return "Password not matched"
+          return "Username not found"
       }
-  } else {
-      return "Username not found"
   }
+
+
+function register(newusername, newpassword, newname, newemail){
+    dbUsers.find(element => {
+        console.log(element) 
+      })//check if username exists
+    dbUsers.push({
+          username : newusername,
+          password : newpassword,
+          name : newname,
+          email : newemail
+      })
+      return "New acc has been created"
 }
 
-function register(newusername, newpassword, newname, newemail) {
-  let matched = dbUsers.find(element => element.username == newusername) 
+//to generate JWT tokens
+function generatetoken(userprofile){
+  return jwt.sign({
+    //data: 'foobar',
+    userprofile,
+  }, 'secret', 
+  { expiresIn: 60 * 60 });
+}
 
-  if (matched) {
-     return "username already exist in earth"
-  } else {
-      dbUsers.push({
-          username: newusername,
-          password: newpassword,
-          name: newname,
-          email: newemail
-      })
-      return "new account has been created"
-  }
-  
+// to verify jwt token
+function verifytoken(req, res, next){
+  let header = req.headers.authorization
+  console.log(header)
+
+  let token = header.split(" ")[1]
+
+
+  jwt.verify(token, 'secret', function(err, decoded) {
+    // // bar
+    if(err){
+      res.send("Invalid Token")
+    }
+
+    req.user = decoded
+    next()
+  });
 }
